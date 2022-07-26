@@ -46,6 +46,8 @@ class Polyline {
     this.width = 10,
     this.zIndex,
     this.onTap,
+    this.gradientColors,
+    this.values,
   });
 
   /// Uniquely identifies a [Polyline].
@@ -58,6 +60,9 @@ class Polyline {
 
   /// Line segment color in ARGB format, the same format used by Color. The default value is black (0xff000000).
   final Color color;
+
+  final List<Color>? gradientColors;
+  final List<double>? values;
 
   /// Indicates whether the segments of the polyline should be drawn as geodesics, as opposed to straight lines
   /// on the Mercator projection.
@@ -128,6 +133,8 @@ class Polyline {
     int? widthParam,
     int? zIndexParam,
     VoidCallback? onTapParam,
+    List<double>? valuesParam,
+    List<Color>? gradientColorsParam,
   }) {
     return Polyline(
       polylineId: polylineId,
@@ -141,6 +148,8 @@ class Polyline {
       width: widthParam ?? width,
       onTap: onTapParam ?? onTap,
       zIndex: zIndexParam ?? zIndex,
+      gradientColors: gradientColorsParam ?? gradientColors,
+      values: valuesParam ?? values,
     );
   }
 
@@ -161,6 +170,9 @@ class Polyline {
     addIfPresent('visible', visible);
     addIfPresent('width', width);
     addIfPresent('zIndex', zIndex);
+    addIfPresent('gradientValues', values);
+    addIfPresent(
+        'gradientColors', gradientColors?.map((e) => e.value).toList());
 
     json['points'] = _pointsToJson();
     json['pattern'] = _patternToJson();

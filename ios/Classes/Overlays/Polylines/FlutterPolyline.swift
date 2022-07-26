@@ -7,6 +7,7 @@
 
 import Foundation
 import MapKit
+import UIKit
 
 class FlutterPolyline: MKPolyline {
     var color: UIColor?
@@ -19,6 +20,7 @@ class FlutterPolyline: MKPolyline {
     var lineJoin: CGLineJoin?
     var zIndex: Int? = -1
     var coordinates: [CLLocationCoordinate2D]?
+    var gradientColors: [UIColor]?
     
     var caShapeLayerLineCap: CAShapeLayerLineCap {
         get {
@@ -86,6 +88,39 @@ class FlutterPolyline: MKPolyline {
         }
         self.lineJoin = self.availableJointTypes[polylineData["jointType"] as? Int ?? 2]
         self.zIndex = polylineData["zIndex"] as? Int
+        
+        let gradientValues = (polylineData["gradientValues"] as? [NSNumber])?.compactMap({ data in
+            data.doubleValue
+        })
+        let colors = (polylineData["gradientColors"] as? [NSNumber])?.compactMap({ data in
+            JsonConversions.convertColor(data: data)
+        })
+        if let colors = colors,
+           !colors.isEmpty,
+           let gradientValues = gradientValues {
+            self.gradientColors = gradientValues.map({ value in
+                let count = colors.count
+                let approxIndex = min(max(value, 0), 1) / (1 / CGFloat(count - 1))
+                let firstIndex = Int(approxIndex.rounded(.down))
+                let secondIndex = Int(approxIndex.rounded(.up))
+                let fallbackIndex = Int(approxIndex.rounded())
+
+                let firstColor = colors[firstIndex]
+                let secondColor = colors[secondIndex]
+                let fallbackColor = colors[fallbackIndex]
+
+                var (r1, g1, b1, a1): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+                var (r2, g2, b2, a2): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+                guard firstColor.getRed(&r1, green: &g1, blue: &b1, alpha: &a1) else { return fallbackColor }
+                guard secondColor.getRed(&r2, green: &g2, blue: &b2, alpha: &a2) else { return fallbackColor }
+
+                let intermediatePercentage = approxIndex - CGFloat(firstIndex)
+                return UIColor(red: CGFloat(r1 + (r2 - r1) * intermediatePercentage),
+                               green: CGFloat(g1 + (g2 - g1) * intermediatePercentage),
+                               blue: CGFloat(b1 + (b2 - b1) * intermediatePercentage),
+                               alpha: CGFloat(a1 + (a2 - a1) * intermediatePercentage))
+            })
+        }
     }
     
     private func linePatternToArray(patternData: NSArray?, lineWidth: CGFloat?) -> [NSNumber] {
